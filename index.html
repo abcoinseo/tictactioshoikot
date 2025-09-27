@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Tic-Tac-Toe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Global Styles & Reset --- */
+        :root {
+            --primary-color: #4CAF50; /* Green for win/action */
+            --secondary-color: #3498db; /* Blue for Player O */
+            --accent-color-x: #e74c3c; /* Red for Player X */
+            --background-light: #f8f9fa;
+            --background-dark: #e9ecef;
+            --text-dark: #343a40;
+            --text-light: #6c757d;
+            --border-color: #dee2e6;
+            --shadow-color-light: rgba(0, 0, 0, 0.08);
+            --shadow-color-heavy: rgba(0, 0, 0, 0.15);
+            --hover-brightness: 0.95;
+            --active-brightness: 0.9;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--background-dark) 0%, var(--background-light) 100%);
+            margin: 0;
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden; /* Prevent horizontal scrollbars */
+        }
+
+        /* --- Game Container --- */
+        .game-container {
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px var(--shadow-color-heavy), 0 6px 15px var(--shadow-color-light);
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: pop-in 0.6s ease-out forwards;
+        }
+
+        h1 {
+            color: var(--text-dark);
+            margin-bottom: 30px;
+            font-size: 3em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- Game Info Area --- */
+        .game-info {
+            margin-bottom: 35px;
+            font-size: 1.4em;
+            font-weight: 600;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease-in-out, transform 0.3s ease-in-out;
+            border-bottom: 2px solid transparent; /* Placeholder for animation */
+            padding-bottom: 5px;
+            position: relative;
+        }
+
+        .game-info.player-x { color: var(--accent-color-x); }
+        .game-info.player-o { color: var(--secondary-color); }
+        .game-info.tie { color: var(--text-light); }
+        .game-info.win { color: var(--primary-color); }
+
+        /* Animated underline for active player */
+        .game-info.player-x::after,
+        .game-info.player-o::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background-color: currentColor; /* Inherits color from parent */
+            transition: width 0.4s ease-in-out;
+        }
+        .game-info.player-x.active::after,
+        .game-info.player-o.active::after {
+            width: 80%;
+        }
+
+        /* --- Game Board --- */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 120px); /* Fixed cell size */
+            grid-template-rows: repeat(3, 120px);   /* Fixed cell size */
+            gap: 15px;
+            margin: 30px auto;
+            background-color: var(--background-dark);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.05);
+            position: relative; /* For positioning win lines */
+        }
+
+        .cell {
+            background-color: #ffffff;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4.5em; /* Larger font for marks */
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace; /* Monospace for a techy feel */
+            cursor: pointer;
+            transition: background-color 0.2s ease-out, transform 0.2s ease-out, box-shadow 0.2s ease-out;
+            color: var(--text-dark);
+            user-select: none;
+            box-shadow: 0 4px 10px var(--shadow-color-light);
+        }
+
+        .cell:hover {
+            background-color: var(--background-light);
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 20px var(--shadow-color-light);
+        }
+        .cell:active {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 4px 10px var(--shadow-color-light); /* Reset to active state */
+        }
+
+        .cell.x .mark,
+        .cell.o .mark {
+            display: inline-block;
+            transform-origin: center;
+            animation: place-mark 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+
+        .cell.x { color: var(--accent-color-x); }
+        .cell.o { color: var(--secondary-color); }
+
+        /* --- Win Line Styles --- */
+        .win-line {
+            position: absolute;
+            background-color: var(--primary-color);
+            z-index: 10;
+            border-radius: 4px;
+            transform-origin: center;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
+        }
+
+        /* --- Restart Button --- */
+        .restart-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 30px;
+            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.3);
+            letter-spacing: 0.5px;
+        }
+
+        .restart-button:hover {
+            background-color: #3e8e41; /* Darker green on hover */
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 9px 20px rgba(76, 175, 80, 0.4);
+        }
+        .restart-button:active {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 30px;
+                width: 90%;
+            }
+            h1 {
+                font-size: 2.5em;
+                margin-bottom: 25px;
+            }
+            .game-info {
+                font-size: 1.2em;
+                margin-bottom: 25px;
+                min-height: 40px;
+            }
+            .board {
+                grid-template-columns: repeat(3, 90px);
+                grid-template-rows: repeat(3, 90px);
+                gap: 10px;
+                padding: 10px;
+                margin: 20px auto;
+            }
+            .cell {
+                font-size: 3.5em;
+            }
+            .restart-button {
+                padding: 12px 25px;
+                font-size: 1.1em;
+            }
+        }
+        @media (max-width: 400px) {
+            .game-container {
+                padding: 20px;
+                width: 95%;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .board {
+                grid-template-columns: repeat(3, 75px);
+                grid-template-rows: repeat(3, 75px);
+                gap: 8px;
+            }
+            .cell {
+                font-size: 3em;
+            }
+            .restart-button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+
+        /* --- Animations --- */
+        @keyframes pop-in {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes place-mark {
+            0% { transform: scale(0.5); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes scale-win-line {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .win-line.animate {
+            animation: scale-win-line 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Tic-Tac-Toe Pro</h1>
+
+        <div id="game-info" class="game-info">
+            Player X's Turn
+        </div>
+
+        <div class="board" id="game-board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+            <div class="win-line-container" id="win-line-container"></div>
+        </div>
+
+        <button id="restart-button" class="restart-button">Restart Game</button>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const boardElement = document.getElementById('game-board');
+        const cells = Array.from(boardElement.querySelectorAll('.cell'));
+        const gameInfoElement = document.getElementById('game-info');
+        const restartButton = document.getElementById('restart-button');
+        const winLineContainer = document.getElementById('win-line-container');
+
+        // --- Game State ---
+        let currentPlayer = 'X';
+        let gameBoard = ['', '', '', '', '', '', '', '', ''];
+        let isGameActive = true;
+        let gameMoves = 0; // To track for ties
+
+        // --- Winning Logic ---
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        // --- Helper Functions ---
+
+        /**
+         * Updates the game info display with the current player's turn or game outcome.
+         */
+        function updateGameInfo() {
+            gameInfoElement.classList.remove('player-x', 'player-o', 'tie', 'win', 'active');
+
+            if (isGameActive) {
+                gameInfoElement.textContent = `Player ${currentPlayer}'s Turn`;
+                gameInfoElement.classList.add(`player-${currentPlayer.toLowerCase()}`, 'active');
+            } else {
+                if (checkWin()) {
+                    gameInfoElement.textContent = `Player ${currentPlayer} Wins!`;
+                    gameInfoElement.classList.add('win');
+                } else {
+                    gameInfoElement.textContent = "It's a Tie!";
+                    gameInfoElement.classList.add('tie');
+                }
+            }
+        }
+
+        /**
+         * Handles a click on a game cell.
+         * @param {MouseEvent} event - The click event.
+         */
+        function handleCellClick(event) {
+            const clickedCell = event.target.closest('.cell'); // Ensure we get the cell, not a nested element
+            if (!clickedCell) return; // If click was not on a cell
+
+            const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+            // Ignore clicks if game is not active or cell is already filled
+            if (!isGameActive || gameBoard[clickedCellIndex] !== '') {
+                return;
+            }
+
+            // Update game state and UI
+            gameBoard[clickedCellIndex] = currentPlayer;
+            clickedCell.innerHTML = `<span class="mark">${currentPlayer}</span>`; // Add span for animation
+            clickedCell.classList.add(currentPlayer.toLowerCase()); // Add class for styling
+            gameMoves++;
+
+            // Check for game end conditions
+            if (checkWin()) {
+                endGame(false); // Not a tie, it's a win
+            } else if (checkTie()) {
+                endGame(true); // It's a tie
+            } else {
+                // Switch player for the next turn
+                switchPlayer();
+            }
+        }
+
+        /**
+         * Switches the current player.
+         */
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateGameInfo();
+        }
+
+        /**
+         * Checks if the current player has won.
+         * @returns {boolean} True if a win is detected, false otherwise.
+         */
+        function checkWin() {
+            for (const combination of winningCombinations) {
+                const [a, b, c] = combination;
+                if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
+                    // Draw win line only if a win is detected
+                    drawWinLine(combination);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Checks if the game is a tie (all cells filled, no winner).
+         * @returns {boolean} True if it's a tie, false otherwise.
+         */
+        function checkTie() {
+            return gameMoves === 9 && !checkWin(); // More efficient check
+        }
+
+        /**
+         * Ends the game and displays the outcome.
+         * @param {boolean} isTie - Whether the game ended in a tie.
+         */
+        function endGame(isTie) {
+            isGameActive = false;
+            updateGameInfo(); // Updates info to show win/tie message
+        }
+
+        /**
+         * Resets the game to its initial state.
+         */
+        function restartGame() {
+            currentPlayer = 'X';
+            gameBoard = ['', '', '', '', '', '', '', '', ''];
+            isGameActive = true;
+            gameMoves = 0;
+
+            cells.forEach(cell => {
+                cell.innerHTML = ''; // Clear cell content
+                cell.classList.remove('x', 'o'); // Remove mark classes
+            });
+
+            // Remove any existing win lines
+            winLineContainer.innerHTML = '';
+
+            updateGameInfo(); // Reset the info text and styles
+        }
+
+        /**
+         * Draws a line on the board to indicate a winning combination.
+         * @param {number[]} combination - The array of indices for the winning cells.
+         */
+        function drawWinLine(combination) {
+            const [a, b, c] = combination;
+            const firstCellElement = cells[a];
+            const lastCellElement = cells[c];
+            const boardRect = boardElement.getBoundingClientRect();
+
+            // Calculate line parameters based on cell positions
+            const cellWidth = firstCellElement.offsetWidth;
+            const cellHeight = firstCellElement.offsetHeight;
+            const boardPadding = parseFloat(getComputedStyle(boardElement).padding); // Get padding value
+            const gap = parseFloat(getComputedStyle(boardElement).gap); // Get gap value
+
+            const getCenter = (index) => {
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+                const offsetX = col * (cellWidth + gap) + cellWidth / 2 + boardPadding;
+                const offsetY = row * (cellHeight + gap) + cellHeight / 2 + boardPadding;
+                return { x: offsetX, y: offsetY };
+            };
+
+            const startPoint = getCenter(a);
+            const endPoint = getCenter(c);
+
+            const lineLength = Math.sqrt(Math.pow(endPoint.x - startPoint.x, 2) + Math.pow(endPoint.y - startPoint.y, 2));
+            const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x) * 180 / Math.PI;
+
+            const line = document.createElement('div');
+            line.classList.add('win-line', 'animate'); // Add animate class
+
+            // Position the line relative to the board's padding context
+            line.style.width = `${lineLength}px`;
+            line.style.height = '6px'; // Thicker line
+            line.style.left = `${startPoint.x}px`; // Start at the center of the first cell
+            line.style.top = `${startPoint.y}px`;  // Start at the center of the first cell
+            line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`; // Center and rotate
+
+            winLineContainer.appendChild(line);
+        }
+
+        // --- Event Listeners ---
+        cells.forEach(cell => {
+            cell.addEventListener('click', handleCellClick);
+        });
+        restartButton.addEventListener('click', restartGame);
+
+        // --- Initial Setup ---
+        restartGame(); // Initialize the game on load
+    </script>
+</body>
+</html>
